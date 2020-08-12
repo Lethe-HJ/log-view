@@ -1,7 +1,6 @@
 <template>
-  <div>
-    <div class="log-text" ref="logElem">
-      <div class="line-left" v-if="showLineNum">
+  <div class="log-box">
+    <div class="log-left" v-if="showLineNum">
         <div
           class="line-num"
           v-for="(item, index) in logContentLi"
@@ -11,6 +10,7 @@
         </div>
         <br />
       </div>
+    <div class="log-right" ref="logElem">    
       <div>
         <p
           class="line"
@@ -190,46 +190,53 @@ export default {
 </script>
 // scss样式的scoped会影响js动态添加的元素的样式，因此这部分分开写
 <style>
-.found-item {
+.log-right .found-item {
   background-color: #f8c9ab;
 }
-.marked-word {
+.log-right .marked-word {
   background-color: #a8ac94;
 }
 
-.marked-line {
+.log-right .marked-line {
   background-color: #ffffcc;
 }
 
-.line:hover {
+.log-right .line:hover {
   background-color: #dcdfe6;
 }
 </style>
 
 <style lang="scss" scoped>
-.log-text {
-  border: 1px solid #dcdfe6;
-  background-color: #fff;
+.log-box {
   height: 700px;
-  overflow: auto;
-  .line {
-    margin: 0px 10px 0px;
-    padding: 0px;
-    color: #000;
-    height: 1rem;
-    line-height: 1.15;
-    white-space: nowrap;
-    
+  border: 1px solid #dcdfe6;
+  overflow-y: auto;
+  overflow-x: hidden;
+  .log-right {
+    background-color: #fff;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    .line {
+      margin: 0px 2px 0px;
+      padding: 0px;
+      color: #000;
+      height: 1rem;
+      line-height: 1.15;
+      white-space: nowrap;
+      
+    }
   }
-  .line-num {
-    color: #2380b8;
-    height: 1rem;
-  }
-  .line-left {
-    margin: 0px 10px 0px;
+
+  .log-left {
+    border-right: 1px solid #dcdfe6;
+    padding: 0px 10px 0px;
     min-width: 15px;
     float: left;
     text-align: right;
+    .line-num {
+      color: #2380b8;
+      height: 1rem;
+    }
   }
 }
 </style>
