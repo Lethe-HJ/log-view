@@ -1,5 +1,3 @@
-// 使用方法 在router里面添加{ path: '/log', name: 'Log', component:
-()=>import('@/views/log/HelloKOLog'), hidden: true } // 然后访问/log
 <template>
   <div>
     <el-row>
@@ -63,14 +61,14 @@
               :label="item.title"
               :name="item.name"
             >
-              <log-view
-                :logContent="logContent"
+              <ko-log
+                :originContent="logContent"
                 :search="search"
                 :showLineNum="showLineNum"
                 @indexChange="indexOfCount"
                 ref="logElem"
               >
-              </log-view>
+              </ko-log>
             </el-tab-pane>
           </el-tabs>
         </div>
@@ -79,12 +77,12 @@
   </div>
 </template>
 <script>
-import LogView from '@/components/LogView';
-import { content } from '@/components/testLog';
+import KOLog from '@/views/log/KOLog';
+import { content2 } from '@/views/log/testLog';
 
 export default {
   components: {
-    'log-view': LogView,
+    'ko-log': KOLog,
   },
   data() {
     return {
@@ -97,7 +95,7 @@ export default {
         },
       ],
       tabIndex: 1,
-      logContent: content,
+      logContent: content2,
       showLineNum: true,
       search: {
         regSupport: false,
