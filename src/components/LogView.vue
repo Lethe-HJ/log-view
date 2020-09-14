@@ -1,20 +1,16 @@
 <template>
   <div class="log-box">
     <div class="log-left" v-if="showLineNum">
-        <div
-          class="line-num"
-          v-for="(item, index) in logContentLi"
-          :key="index"
-        >
-          {{ index + 1 }}
-        </div>
-        <br />
+      <div class="line-num" v-for="(item, index) in displayTextLi" :key="index">
+        {{ index + 1 }}
       </div>
-    <div class="log-right" ref="logElem">    
+      <br />
+    </div>
+    <div class="log-right" ref="logElem">
       <div>
         <p
           class="line"
-          v-for="(item, index) in logContentLi"
+          v-for="(item, index) in displayTextLi"
           :key="index"
           v-html="item"
         ></p>
@@ -24,11 +20,12 @@
 </template>
 
 <script>
+import Timer from '@/utils/smart-timer/timer.js';
 
 export default {
   name: 'LogView',
   props: {
-    logContent: {
+    originContent: {
       type: String,
       default: '',
     },
@@ -56,31 +53,43 @@ export default {
         preNode: null,
         preSearch: '',
       },
-      content: this.logContent,
+      // 初始处理 空格替换成&nbsp
+      originText: this.replaceSpace(this.originContent),
+      displayText: this.replaceSpace(this.originContent),
     };
   },
   computed: {
-    logContentLi() {
-      return this.content.split('\n');
+    displayTextLi() {
+      return this.displayText.split('\n');
     },
   },
   watch: {
     search: {
       handler() {
-        // search相关字段有变动 重新查找并高亮
-        this.searchAndHeightlight(this.search.content);
+        this.asyncSearch(this.search.content);
+      },
+      deep: true,
+    },
+    // 告诉父组件 现在是 第几个/总共多少个
+    searchObj: {
+      handler() {
+        this.$emit('indexChange', {
+          index: this.searchObj.index,
+          count: this.searchObj.li.length,
+        });
       },
       deep: true,
     },
   },
   mounted() {
     this.logElem = this.$refs.logElem;
+    this.timer = new Timer({ times: 1 });
   },
   methods: {
     // 清除高亮和标记
     cleanHightlight() {
       // 清除高亮
-      this.content = this.logContent;
+      this.displayText = this.originText;
       // 恢复上一个被标记的行
       if (this.searchObj.preNode) {
         this.searchObj.preNode.parentNode.classList.remove('marked-line');
@@ -95,6 +104,7 @@ export default {
     },
 
     searchAndHeightlight(str) {
+      console.log('开始searchAndHeightlight', new Date().getTime());
       this.cleanHightlight(); // 先把上一次的高亮和标记清除
       // 清空了搜索内容
       if (str === '') return true;
@@ -105,9 +115,18 @@ export default {
         str = this.regEscape(str);
       }
       const mode = this.search.caseSensetive ? 'g' : 'gi';
-      this.content = this.logContent.replace(
+      // 先高亮指定内容 注意先不给空格
+      // 查找使用包含空格的原数据
+      const heightLightText = this.originContent.replace(
         new RegExp(`(${str})`, mode),
-        `<b class="found-item">$1</b>`,
+        `<bclass="found-item">$1</b>`,
+      );
+      // 替换空格为&nbsp
+      const noSpaceText = this.replaceSpace(heightLightText);
+      // 然后把高亮标签的空格加上
+      this.displayText = noSpaceText.replace(
+        /<bclass="found-item">/g,
+        `<b class="found-item">`,
       );
       this.$nextTick(() => {
         // 等渲染完成
@@ -120,6 +139,22 @@ export default {
         }
         this.FollowingSearchedNode(); // 标记下一个
         this.searchObj.preNode = this.searchObj.li[0]; // 储存第一个高亮节点为上一个被标记的节点
+        console.log('显示searchAndHeightlight', new Date().getTime());
+      });
+      console.log('结束searchAndHeightlight', new Date().getTime());
+      return true;
+    },
+
+    asyncSearch(str) {
+      return new Promise((resolve, reject) => {
+        this.timer.getTimer(() => {
+          const res = this.searchAndHeightlight(str);
+          if (res) {
+            resolve('haha');
+          } else {
+            reject(Error('hehe'));
+          }
+        }, 200);
       });
     },
 
@@ -145,12 +180,6 @@ export default {
       elemNode.classList.add('marked-word'); // 标记这个节点
       elemNode.parentNode.classList.add('marked-line'); // 标记节点所在行
       this.searchObj.preNode = elemNode; // 储存当前被标记节点为下一次的上一个被标记的节点
-
-      // 告诉父组件 现在是 第几个/总共多少个
-      this.$emit('indexChange', {
-        index: this.searchObj.index,
-        count: this.searchObj.li.length,
-      });
     },
 
     // 让内容滚动到中间
@@ -162,7 +191,8 @@ export default {
     },
 
     // 对字符串中的 在正则表达式中有特殊含义的字符进行转义
-    regEscape(str){
+    // 输入字符串'.' 返回字符串'\.' 注意不是字面量
+    regEscape(str) {
       const escapeChars = [
         '\\\\',
         '\\^',
@@ -180,29 +210,40 @@ export default {
         '\\{',
         '\\}',
       ];
+      // 注意上述字符串输入为字面量\\. 真实存在的字符串为\.
       escapeChars.forEach((item) => {
+        // 第一个item中字符串'\.' 是作为正则表达式 含义是转义'.'
+        // 第二个item中字符串'\.' 作为替换后的字符串 '\.'
         str = str.replace(new RegExp(item, 'g'), item);
       });
       return str;
+    },
+
+    // 替换字符串中所有的空格为&nbsp
+    replaceSpace(content) {
+      return content.replace(new RegExp(/\x20/, 'g'), '&nbsp');
     },
   },
 };
 </script>
 // scss样式的scoped会影响js动态添加的元素的样式，因此这部分分开写
-<style>
-.log-right .found-item {
-  background-color: #f8c9ab;
-}
-.log-right .marked-word {
-  background-color: #a8ac94;
-}
+<style lang="scss">
+.log-right {
+  .found-item {
+    background-color: #f8c9ab;
+  }
 
-.log-right .marked-line {
-  background-color: #ffffcc;
-}
+  .marked-word {
+    background-color: #a8ac94;
+  }
 
-.log-right .line:hover {
-  background-color: #dcdfe6;
+  .marked-line {
+    background-color: #ffffcc;
+  }
+
+  .line:hover {
+    background-color: #dcdfe6;
+  }
 }
 </style>
 
@@ -223,7 +264,6 @@ export default {
       height: 1rem;
       line-height: 1.15;
       white-space: nowrap;
-      
     }
   }
 
